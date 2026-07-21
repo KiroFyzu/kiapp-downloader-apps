@@ -471,12 +471,192 @@
           }
         }
       }
+    },
+    "/api/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Daftar Akun Baru",
+        "description": "Mendaftarkan user baru via Supabase Auth dan langsung membuat API key untuk user tersebut.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
+                  "password": { "type": "string", "minLength": 6, "example": "rahasia123" },
+                  "fullName": { "type": "string", "example": "Budi Santoso" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Akun berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "email": { "type": "string", "format": "email" },
+                            "fullName": { "type": "string" }
+                          }
+                        },
+                        "apiKey": { "type": "string", "example": "sdm_abc123..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validasi gagal", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "409": { "description": "Email sudah terdaftar", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/signin": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Masuk ke Akun",
+        "description": "Login dengan email & password, mengembalikan data user + API key.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "rahasia123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "email": { "type": "string", "format": "email" }
+                          }
+                        },
+                        "apiKey": { "type": "string", "example": "sdm_abc123..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Email atau password salah", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Profil User",
+        "description": "Mengembalikan data user berdasarkan API key yang dikirim via header X-API-Key.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Data profil user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "email": { "type": "string", "format": "email" }
+                          }
+                        },
+                        "apiKey": { "type": "string" },
+                        "createdAt": { "type": "string", "format": "date-time" },
+                        "lastUsedAt": { "type": "string", "format": "date-time", "nullable": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "API Key tidak valid", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/api/auth/refresh-key": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh API Key",
+        "description": "Menghasilkan API key baru untuk user yang terautentikasi. Key lama tidak berlaku lagi.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "API key berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "apiKey": { "type": "string", "example": "sdm_xyz789..." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "API Key tidak valid", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
     }
   },
   "tags": [
     {
       "name": "System",
       "description": "Endpoint informasi sistem dan health check"
+    },
+    {
+      "name": "Auth",
+      "description": "Endpoint autentikasi dan manajemen API Key per-user"
     },
     {
       "name": "Download",

@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 const config = require('./config');
 const routes = require('./routes');
+const authRoutes = require('./routes/auth');
 const docsRouter = require('./docs');
 const { errorHandler, notFound } = require('./middlewares/errorHandler');
 
@@ -54,6 +55,10 @@ app.get('/health', (_req, res) => {
 // API Docs — Scalar
 app.use('/docs', docsRouter);
 
+// Auth routes (publik: signup/signin)
+app.use('/api/auth', authRoutes);
+
+// Downloader & History routes (dilindungi API key)
 app.use('/api', routes);
 
 app.use(notFound);

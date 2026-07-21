@@ -22,7 +22,7 @@ class DownloadController {
         try {
           const supabase = getSupabase();
           await supabase.from('downloads').insert({
-            user_id: req.body.userId || null,
+            user_id: req.user?.userId || null,
             url: value.url,
             platform,
             title: result.title,

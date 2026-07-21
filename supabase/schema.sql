@@ -29,7 +29,7 @@ create table if not exists public.profiles (
   updated_at  timestamptz not null default now()
 );
 
--- Trigger: auto-create profile saat user baru sign up
+-- Trigger: auto-create profile + api_key saat user baru sign up
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -42,6 +42,14 @@ begin
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url'
   );
+
+  -- Auto-generate API key untuk user baru
+  insert into public.api_keys (user_id, api_key)
+  values (
+    new.id,
+    encode(sha256((new.id::text || '-' || gen_random_uuid()::text)::bytea), 'hex')
+  );
+
   return new;
 end;
 $$;
@@ -85,6 +93,35 @@ create policy "profiles_upsert_own"
   on public.profiles for all
   using (auth.uid() = id)
   with check (auth.uid() = id);
+
+-- 3. Tabel api_keys (API key per user)
+create table if not exists public.api_keys (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  api_key     text not null unique,
+  created_at  timestamptz not null default now(),
+  last_used_at timestamptz
+);
+
+create index if not exists api_keys_user_id_idx on public.api_keys (user_id);
+create index if not exists api_keys_api_key_idx on public.api_keys (api_key);
+
+alter table public.api_keys enable row level security;
+
+drop policy if exists "api_keys_select_own" on public.api_keys;
+create policy "api_keys_select_own"
+  on public.api_keys for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "api_keys_insert_own" on public.api_keys;
+create policy "api_keys_insert_own"
+  on public.api_keys for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "api_keys_delete_own" on public.api_keys;
+create policy "api_keys_delete_own"
+  on public.api_keys for delete
+  using (auth.uid() = user_id);
 
 -- Catatan: service role key (yang dipakai backend) bypass RLS,
 -- jadi backend bisa mengelola history lintas user jika diperlukan.

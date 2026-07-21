@@ -3,7 +3,6 @@ require('dotenv').config();
 module.exports = {
   port: parseInt(process.env.PORT, 10) || 4000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  apiKey: process.env.API_KEY || 'changeme-random-secret-key',
 
   supabase: {
     url: process.env.SUPABASE_URL,

@@ -4,14 +4,13 @@ const ApiError = require('../utils/ApiError');
 class HistoryController {
   /**
    * GET /api/history?limit=20
-   * - Kalau Authorization header berisi user token, hanya return history user tsb.
-   * - Kalau tidak ada token dan ada userId di query, return sesuai userId.
+   * - Mengambil history milik user yang terautentikasi (dari API key).
    */
   async list(req, res, next) {
     try {
       const supabase = getSupabase();
       const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
-      const userId = req.query.userId || null;
+      const userId = req.user?.userId;
 
       let query = supabase
         .from('downloads')
@@ -37,14 +36,14 @@ class HistoryController {
   async create(req, res, next) {
     try {
       const supabase = getSupabase();
-      const { user_id, url, platform, title, thumbnail, media } = req.body;
+      const { url, platform, title, thumbnail, media } = req.body;
 
       if (!url || !platform) {
         throw new ApiError(400, 'url dan platform wajib diisi');
       }
 
       const payload = {
-        user_id: user_id || null,
+        user_id: req.user?.userId || null,
         url,
         platform,
         title: title || '',
@@ -83,13 +82,13 @@ class HistoryController {
 
   /**
    * DELETE /api/history
-   * body: { userId } — hapus semua history user tertentu
+   * Menghapus semua history milik user yang terautentikasi.
    */
   async clear(req, res, next) {
     try {
       const supabase = getSupabase();
-      const userId = req.body?.userId;
-      if (!userId) throw new ApiError(400, 'userId wajib diisi');
+      const userId = req.user?.userId;
+      if (!userId) throw new ApiError(400, 'User tidak terautentikasi');
 
       const { error } = await supabase
         .from('downloads')
