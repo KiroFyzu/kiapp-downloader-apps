@@ -1,0 +1,41 @@
+{
+  "name": "downloader-backend",
+  "version": "1.0.0",
+  "description": "Backend API untuk Social Media Downloader (TikTok, Instagram, Facebook, dll) dengan Supabase",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "lint": "eslint src/**/*.js"
+  },
+  "keywords": [
+    "downloader",
+    "tiktok",
+    "instagram",
+    "facebook",
+    "supabase",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@scalar/express-api-reference": "^0.10.11",
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.5",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,490 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Social Media Downloader API",
+    "version": "1.0.0",
+    "description": "RESTful API untuk mengunduh media dari berbagai platform sosial media seperti TikTok, Instagram, Facebook, Twitter, YouTube, dan lainnya.\n\nDibangun dengan **Express.js** + **Supabase**.",
+    "contact": {
+      "name": "Developer"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000",
+      "description": "Development server"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API Key untuk mengakses endpoint yang diproteksi. Dikirimkan melalui header `X-API-Key`."
+      }
+    },
+    "schemas": {
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["success", "message"],
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string", "example": "Pesan error" },
+          "details": { "type": "object", "nullable": true }
+        }
+      },
+      "Platform": {
+        "type": "string",
+        "enum": [
+          "tiktok", "instagram", "facebook", "twitter",
+          "youtube", "threads", "pinterest", "reddit", "snackvideo"
+        ]
+      },
+      "MediaItem": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "format": "uri", "example": "https://example.com/video.mp4" },
+          "type": { "type": "string", "enum": ["video", "image"], "example": "video" },
+          "quality": { "type": "string", "example": "hd" },
+          "width": { "type": "integer", "nullable": true },
+          "height": { "type": "integer", "nullable": true }
+        }
+      },
+      "DownloadResult": {
+        "type": "object",
+        "properties": {
+          "platform": { "$ref": "#/components/schemas/Platform" },
+          "title": { "type": "string", "example": "Video Keren" },
+          "thumbnail": { "type": "string", "format": "uri", "example": "https://example.com/thumb.jpg" },
+          "author": { "type": "string", "example": "@username" },
+          "duration": { "type": "integer", "nullable": true, "example": 45 },
+          "media": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MediaItem" }
+          }
+        }
+      },
+      "HistoryItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "example": "d290f1ee-6c54-4b01-90e6-d701748f0851" },
+          "user_id": { "type": "string", "format": "uuid", "nullable": true },
+          "url": { "type": "string", "format": "uri" },
+          "platform": { "$ref": "#/components/schemas/Platform" },
+          "title": { "type": "string" },
+          "thumbnail": { "type": "string", "format": "uri" },
+          "media": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MediaItem" }
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DownloadRequest": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL konten sosial media yang ingin diunduh",
+            "example": "https://www.tiktok.com/@user/video/123456789"
+          },
+          "saveToHistory": {
+            "type": "boolean",
+            "default": true,
+            "description": "Simpan ke riwayat unduhan"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID user (jika ada) untuk dikaitkan dengan riwayat"
+          }
+        }
+      },
+      "CreateHistoryRequest": {
+        "type": "object",
+        "required": ["url", "platform"],
+        "properties": {
+          "user_id": { "type": "string", "format": "uuid", "nullable": true },
+          "url": { "type": "string", "format": "uri" },
+          "platform": { "$ref": "#/components/schemas/Platform" },
+          "title": { "type": "string", "default": "" },
+          "thumbnail": { "type": "string", "format": "uri", "default": "" },
+          "media": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MediaItem" },
+            "default": []
+          }
+        }
+      },
+      "ClearHistoryRequest": {
+        "type": "object",
+        "required": ["userId"],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID user yang history-nya akan dihapus"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Root / Info API",
+        "description": "Menampilkan informasi dasar API.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Informasi API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "version": { "type": "string" },
+                    "status": { "type": "string" },
+                    "docs": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health Check",
+        "description": "Memeriksa status kesehatan server.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server sehat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "healthy" },
+                    "uptime": { "type": "number", "example": 1234.56 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/download/platforms": {
+      "get": {
+        "tags": ["Download"],
+        "summary": "Daftar Platform",
+        "description": "Mengembalikan daftar platform sosial media yang didukung.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Daftar platform",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Platform" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/download": {
+      "post": {
+        "tags": ["Download"],
+        "summary": "Unduh Media",
+        "description": "Mengunduh media dari URL sosial media. Platform akan terdeteksi secara otomatis dari URL.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DownloadRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data media berhasil diambil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/DownloadResult" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "URL tidak valid atau body request salah",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "502": {
+            "description": "Gagal mengambil media dari provider",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Provider belum dikonfigurasi",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history": {
+      "get": {
+        "tags": ["History"],
+        "summary": "Riwayat Unduhan",
+        "description": "Mengambil daftar riwayat unduhan. Bisa difilter berdasarkan `userId`.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "maximum": 100 },
+            "description": "Jumlah riwayat yang akan diambil (maks 100)"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Filter berdasarkan ID user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar riwayat unduhan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/HistoryItem" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["History"],
+        "summary": "Tambah Riwayat",
+        "description": "Menambahkan riwayat unduhan baru secara manual.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateHistoryRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Riwayat berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/HistoryItem" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body request tidak lengkap",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["History"],
+        "summary": "Hapus Semua Riwayat",
+        "description": "Menghapus seluruh riwayat unduhan milik user tertentu.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClearHistoryRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Riwayat berhasil dihapus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "userId tidak disertakan",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/history/{id}": {
+      "delete": {
+        "tags": ["History"],
+        "summary": "Hapus Riwayat",
+        "description": "Menghapus satu item riwayat unduhan berdasarkan ID.",
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "ID riwayat yang akan dihapus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Riwayat berhasil dihapus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API Key tidak valid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "System",
+      "description": "Endpoint informasi sistem dan health check"
+    },
+    {
+      "name": "Download",
+      "description": "Endpoint untuk mengunduh media dari sosial media"
+    },
+    {
+      "name": "History",
+      "description": "Endpoint untuk mengelola riwayat unduhan"
+    }
+  ]
+}
