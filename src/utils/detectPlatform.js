@@ -16,6 +16,7 @@ function detectPlatform(url) {
   if (/(pinterest\.com|pin\.it)/.test(u)) return 'pinterest';
   if (/(reddit\.com|redd\.it)/.test(u)) return 'reddit';
   if (/(snackvideo\.com)/.test(u)) return 'snackvideo';
+  if (/(capcut\.com)/.test(u)) return 'capcut';
 
   return 'unknown';
 }
@@ -30,6 +31,7 @@ const SUPPORTED_PLATFORMS = [
   'pinterest',
   'reddit',
   'snackvideo',
+  'capcut',
 ];
 
 module.exports = { detectPlatform, SUPPORTED_PLATFORMS };

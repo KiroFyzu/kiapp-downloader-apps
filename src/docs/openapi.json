@@ -48,7 +48,7 @@
         "type": "string",
         "enum": [
           "tiktok", "instagram", "facebook", "twitter",
-          "youtube", "threads", "pinterest", "reddit", "snackvideo"
+          "youtube", "threads", "pinterest", "reddit", "snackvideo", "capcut"
         ]
       },
       "MediaItem": {

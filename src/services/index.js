@@ -3,6 +3,7 @@ const InstagramDownloader = require('./instagramDownloader');
 const FacebookDownloader = require('./facebookDownloader');
 const TwitterDownloader = require('./twitterDownloader');
 const YoutubeDownloader = require('./youtubeDownloader');
+const CapCutDownloader = require('./capcutDownloader');
 const BaseDownloader = require('./BaseDownloader');
 const ApiError = require('../utils/ApiError');
 
@@ -12,6 +13,7 @@ const map = {
   facebook: FacebookDownloader,
   twitter: TwitterDownloader,
   youtube: YoutubeDownloader,
+  capcut: CapCutDownloader,
 };
 
 /**
