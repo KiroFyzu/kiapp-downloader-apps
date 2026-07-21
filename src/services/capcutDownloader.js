@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const BaseDownloader = require('./BaseDownloader');
+const config = require('../config');
 
 /**
  * CapCut downloader.
@@ -23,15 +24,29 @@ const BaseDownloader = require('./BaseDownloader');
  *   https://www.capcut.com/<id>
  */
 class CapCutDownloader extends BaseDownloader {
+  constructor() {
+    super('capcut');
+  }
+
   /**
    * Try Siputzx API first, fallback to scraping capcut.com
    */
   async fetchMedia(url) {
-    // 1) Primary: Siputzx API
+    // 0) Custom provider dari .env
+    const customUrl = config.providers.capcut;
+    if (customUrl) {
+      try {
+        const raw = await this.callProvider(customUrl, url);
+        return this.format(raw);
+      } catch (e) {
+        console.warn('[CapCut] custom provider gagal:', e.message);
+      }
+    }
+
+    // 1) Siputzx API
     try {
       return await this.fetchViaSiputzx(url);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.warn('[CapCut] Siputzx gagal:', err.message, '→ fallback scraping');
     }
 
@@ -130,6 +145,18 @@ class CapCutDownloader extends BaseDownloader {
         },
       ],
       provider: 'scraping',
+    };
+  }
+
+  /** Format response dari custom provider (.env) */
+  format(raw) {
+    return {
+      platform: 'capcut',
+      title: raw.title || '',
+      thumbnail: raw.thumbnail || '',
+      author: raw.author || '',
+      duration: raw.duration || null,
+      media: Array.isArray(raw.media) ? raw.media : [],
     };
   }
 }

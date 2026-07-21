@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const BaseDownloader = require('./BaseDownloader');
+const config = require('../config');
 const ApiError = require('../utils/ApiError');
 
 // =================================================================
@@ -171,9 +172,20 @@ class TiktokDownloader extends BaseDownloader {
 
   /**
    * Mencoba provider secara berurutan sampai salah satu berhasil.
-   * Urutan: TTSave → Siputzx V2 → Siputzx V1
+   * Urutan: Custom env → TTSave → Siputzx V2 → Siputzx V1
    */
   async fetchMedia(url) {
+    // --- Provider 0: Custom provider dari .env ---
+    const customUrl = config.providers.tiktok;
+    if (customUrl) {
+      try {
+        const raw = await this.callProvider(customUrl, url);
+        return this.format(raw);
+      } catch (e) {
+        console.warn('[TikTok] custom provider gagal:', e.message);
+      }
+    }
+
     // --- Provider 1: TTSave ---
     const ttsave = await downloadFromTTSave(url);
     if (ttsave.success) {
@@ -266,6 +278,18 @@ class TiktokDownloader extends BaseDownloader {
 
     // Semua provider gagal
     throw new ApiError(502, `TikTok: semua provider gagal. ${ttsave.error || v2.error || v1.error || 'unknown error'}`);
+  }
+
+  /** Format response dari custom provider (.env) */
+  format(raw) {
+    return {
+      platform: 'tiktok',
+      title: raw.title || '',
+      thumbnail: raw.thumbnail || '',
+      author: raw.author || '',
+      duration: raw.duration || null,
+      media: Array.isArray(raw.media) ? raw.media : [],
+    };
   }
 }
 

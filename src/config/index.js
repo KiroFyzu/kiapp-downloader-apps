@@ -21,5 +21,6 @@ module.exports = {
     facebook: process.env.FACEBOOK_API_URL,
     twitter: process.env.TWITTER_API_URL,
     youtube: process.env.YOUTUBE_API_URL,
+    capcut: process.env.CAPCUT_API_URL,
   },
 };
