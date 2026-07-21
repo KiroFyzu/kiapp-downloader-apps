@@ -161,4 +161,4 @@ class CapCutDownloader extends BaseDownloader {
   }
 }
 
-module.exports = new CapCutDownloader();
+module.exports = CapCutDownloader;

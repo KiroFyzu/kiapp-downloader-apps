@@ -46,9 +46,15 @@ async function apiKeyMiddleware(req, res, next) {
 
     next();
   } catch (err) {
+    // Tangani kasus tabel belum ada di Supabase
+    const isTableMissing = err.message?.includes('relation') && err.message?.includes('does not exist');
+    const msg = isTableMissing
+      ? 'Tabel api_keys belum ada. Jalankan schema.sql di Supabase SQL Editor.'
+      : err.message || 'Internal server error';
+    console.error('[apiKey] Error:', err.message);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: msg,
     });
   }
 }
